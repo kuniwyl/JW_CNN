@@ -61,6 +61,6 @@ function train(network::NeuralNetwork, inputs, targets, epochs, batch_size)
     end
 end
 
-export train, NeuralNetwork, ConvLayer, PoolLayer, DenseLayer, FlattenLayer, forward_pass, backward_pass, update_weights!
+export train, NeuralNetwork, ConvLayer, PoolLayer, DenseLayer, FlattenLayer, forward_pass, backward_pass, update_weights!, calculate_dl_dOut
 
 end

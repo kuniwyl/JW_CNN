@@ -22,22 +22,16 @@ function forward_pass(layer::DenseLayer, input::Array{Float64, 1})  # Single exa
     # Apply the activation function
     output = layer.activation(preactivation)
 
-    return output
+    return output, preactivation
 end
 
 
-function backward_pass(layer::DenseLayer, y::Array{Float64, 1}, input::Array{Float64, 1}, true_output::Array{Float64, 1})
-    # Calculate the pre-activation values (linear combination before ReLU)
-    preactivation = layer.weights' * input + layer.biases
-
-    # Gradient of the loss with respect to the output
-    dL_dOut = y - true_output
-
+function backward_pass(layer::DenseLayer, dl_dOut::Array{Float64, 1}, preactivation::Array{Float64, 1}, input::Array{Float64, 1})
     # Calculate the derivative of ReLU
     dOut_dZ = derivative_relu(preactivation)
 
     # Gradient of the loss with respect to the pre-activation (chain rule application)
-    dL_dZ = dL_dOut .* dOut_dZ
+    dL_dZ = dl_dOut .* dOut_dZ
 
     # Gradient of the loss with respect to the weights
     dL_dW = input * dL_dZ'  # Outer product of dL_dZ and input
@@ -52,4 +46,12 @@ end
 function update_weights!(layer::DenseLayer, dL_dW::Array, dL_dB::Array, learning_rate::Float64)
     layer.weights .-= learning_rate .* dL_dW
     layer.biases .-= learning_rate .* dL_dB
+end
+
+function calculate_dl_dOut(weights::Array{Float64, 2}, dL_dB_prev::Array{Float64, 1})
+    return weights * dL_dB_prev
+end
+
+function calculate_dl_dOut(output::Array{Float64, 1}, true_output::Array{Float64, 1})
+    return output - true_output
 end
