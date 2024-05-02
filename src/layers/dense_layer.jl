@@ -26,9 +26,12 @@ function forward_pass(layer::DenseLayer, input::Array{Float64, 1})  # Single exa
 end
 
 
-function backward_pass(layer::DenseLayer, dL_dOut::Array{Float64}, input::Array{Float64})
+function backward_pass(layer::DenseLayer, y::Array{Float64, 1}, input::Array{Float64, 1}, true_output::Array{Float64, 1})
     # Calculate the pre-activation values (linear combination before ReLU)
-    preactivation = layer.weights * input + layer.biases
+    preactivation = layer.weights' * input + layer.biases
+
+    # Gradient of the loss with respect to the output
+    dL_dOut = y - true_output
 
     # Calculate the derivative of ReLU
     dOut_dZ = derivative_relu(preactivation)
@@ -37,15 +40,12 @@ function backward_pass(layer::DenseLayer, dL_dOut::Array{Float64}, input::Array{
     dL_dZ = dL_dOut .* dOut_dZ
 
     # Gradient of the loss with respect to the weights
-    dL_dW = dL_dZ * input'  # Outer product of dL_dZ and input
+    dL_dW = input * dL_dZ'  # Outer product of dL_dZ and input
 
     # Gradient of the loss with respect to the biases
     dL_dB = dL_dZ
 
-    # Gradient of the loss with respect to the input
-    dL_dIn = layer.weights' * dL_dZ  # Backpropagate through the weights
-
-    return dL_dIn, dL_dW, dL_dB
+    return dL_dW, dL_dB
 end
 
 
