@@ -1,26 +1,17 @@
 mutable struct FlattenLayer <: Layer
     input_shape::Tuple
-
-    output::Array{Float32, 2}
 end
 
 # Function to initialize a new flatten layer
 function FlattenLayer()
     input_shape = (1, 1, 1, 1)
-    output = zeros(1, 1)
-    return FlattenLayer(input_shape, output)
+    return FlattenLayer(input_shape)
 end
 
 function forward_pass(layer::FlattenLayer, input::Array)
-    if layer.output == zeros(1, 1)
-        layer.input_shape = size(input)
-        input_height, input_width, input_channels, batch_size = size(input)
-        layer.output = zeros(input_height * input_width * input_channels, batch_size)
-    else
-        layer.output .= 0
-    end
+    layer.input_shape = size(input)
 
-    return reshape(input, size(layer.output))
+    return reshape(input, layer.input_shape[1] * layer.input_shape[2] * layer.input_shape[3], layer.input_shape[4])
 end
 
 # gradient from the next layer and the input from the previous layer

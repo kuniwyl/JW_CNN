@@ -45,35 +45,32 @@ end
 function forward_pass(layer::ConvLayer, input::Array)::Array{Float32, 4}
     layer.input = input
     inputHeight, inputWidth, _, batchSize = size(input)
-    filterHeight, filterWidth, num_filters = size(layer.filters)
+    filterHeight, filterWidth, numFilters = size(layer.filters)
     
-    # Calculate output dimensions
     outputHeight = inputHeight - filterHeight + 1
     outputWidth = inputWidth - filterWidth + 1
 
-    if size(layer.output) == (1, 1, 1, 1)
-        layer.output = zeros(outputHeight, outputWidth, num_filters, batchSize)
-    else 
-        layer.output .= 0
+    if size(layer.output) != (outputHeight, outputWidth, numFilters, batchSize)
+        @info "Initializing output tensor for ConvLayer"
+        layer.output = zeros(outputHeight, outputWidth, numFilters, batchSize)
+    else
+        fill!(layer.output, 0)
     end
 
-    output = layer.output
-
-    for f in 1:num_filters
+    for f in 1:numFilters
         filter = layer.filters[:, :, f]
-        for y in 1:outputHeight
-            for x in 1:outputWidth
+            for y in 1:outputHeight
+                for x in 1:outputWidth
                 result = input[y:y+filterHeight-1, x:x+filterWidth-1, :, :] .* filter
-                output[y, x, f, :] += vec(sum(result, dims=(1, 2, 3))) .+ layer.biases[f]
+                layer.output[y, x, f, :] += vec(sum(result, dims=(1, 2, 3))) .+ layer.biases[f]
             end
         end
     end
 
     # Activation Function (ReLU)
-    output = layer.activation(output)
-    layer.output = output
+    layer.output = layer.activation(layer.output)
 
-    return output
+    return layer.output
 end
 
 
@@ -85,9 +82,11 @@ function backward_pass(layer::ConvLayer, dL_dY::Array)::Array{Float32, 4}
     output_height, output_width, _ = size(dL_dY)
 
     if size(layer.dL_dX) == (1, 1, 1, 1)
+        @info "Initializing dL_dX tensor for ConvLayer"
         layer.dL_dX = zeros(size(input))
+    else 
+        fill!(layer.dL_dX, 0)
     end
-    layer.dL_dX .= 0
 
     # Iterate over each filter
     for f in 1:num_filters
@@ -110,10 +109,12 @@ end
 
 
 function update_weights(layer::ConvLayer, learning_rate::Float64, batch_size::Int64)
-    layer.filters .-= learning_rate * layer.dL_dW / batch_size
-    layer.biases .-= learning_rate * layer.dL_dB / batch_size
+    layer.filters .-= learning_rate * (layer.dL_dW / batch_size)
+    layer.biases .-= learning_rate * (layer.dL_dB / batch_size)
 
     # Reset the gradients
-    layer.dL_dW .= 0
-    layer.dL_dB .= 0
+    fill!(layer.dL_dW, 0)
+    fill!(layer.dL_dB, 0)
+
+    return
 end

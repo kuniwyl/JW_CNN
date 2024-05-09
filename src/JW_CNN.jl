@@ -4,6 +4,10 @@ using Statistics: mean
 using LinearAlgebra
 using Flux
 using Random
+using Base.Threads: nthreads
+
+println("JW_CNN module loaded")
+println("Number of threads: ", nthreads())
 
 # Utils
 include("utils.jl")
@@ -18,11 +22,12 @@ include("layers/FlattenLayer.jl")
 mutable struct NeuralNetwork
     layers::Vector  # A vector to hold different types of layers
     learning_rate::Float64
+    batch_size::Int64
 end
 
 # Constructor for the neural network
-function NeuralNetwork(learning_rate::Float64)
-    return NeuralNetwork([], learning_rate)
+function NeuralNetwork(learning_rate::Float64, batch_size::Int64)
+    return NeuralNetwork([], learning_rate, batch_size)
 end
 
 # Function to add layers to the network
@@ -34,7 +39,7 @@ end
 function forward_pass(network::NeuralNetwork, input)
     output = input
     for layer in network.layers
-        output = forward_pass(layer, output)
+        output = forward_pass(layer, output)    
     end
     return output
 end
@@ -55,7 +60,7 @@ function update_weights!(network::NeuralNetwork, batch_size)
 end
 
 function shuffle_data(inputs, targets)
-    num_samples = size(targets, 2)
+    num_samples = size(inputs, 4)
 
     # Create an array of indices and shuffle it
     indices = Random.shuffle(1:num_samples)
@@ -86,22 +91,14 @@ function get_batches(inputs, targets, batch_size)
     return batches
 end
 
-function cross_entropy_loss(output, target)
-    return -sum(target .* log.(output))
-end
-
-function calculate_accuracy(output, target)
-    predictions = argmax(output, dims=1)
-    target_labels = argmax(target, dims=1)
-    return mean(predictions .== target_labels)
-end
-
-function train(network::NeuralNetwork, inputs, targets, epochs::Int64, batch_size::Int64)
+function train(network::NeuralNetwork, inputs, targets, test_input, test_target, epochs::Int64)
     for epoch in 1:epochs
+        @time begin
         @info "Epoch $epoch"
         total_loss = 0.0
         total_accuracy = 0.0
-        batches = get_batches(inputs, targets, batch_size)
+        batches = get_batches(inputs, targets, network.batch_size)
+        i = 1
         
         for (x, y) in batches
             # Forward pass
@@ -113,26 +110,40 @@ function train(network::NeuralNetwork, inputs, targets, epochs::Int64, batch_siz
             backward_pass(network, grad)
 
             # Update weights
-            update_weights!(network, batch_size)
+            update_weights!(network, network.batch_size)
 
             total_loss += loss
             total_accuracy += acc
+
+            @info "Loss: $loss, Accuracy: $acc, Epoch $epoch, Batch number: $i / $(length(batches))"
+            i += 1
         end
         
-        # Calculate average loss and accuracy
-        avg_loss = total_loss / length(batches)
-        avg_accuracy = total_accuracy / length(batches)
-        @info "Average Loss: $avg_loss, Average Accuracy: $avg_accuracy"
+        test_loss, test_acc = test(network, test_input, test_target)
+        @info "Test Loss: $test_loss, Test Accuracy: $test_acc"
+        end
     end
     return network.layers
 end
 
+
+
 function test(network::NeuralNetwork, test_inputs, test_targets)
-    output = forward_pass(network, test_inputs)
+    total_loss = 0.0
+    total_accuracy = 0.0
+    batches = get_batches(test_inputs, test_targets, network.batch_size)
 
-    loss, acc, _ = loss_and_accuracy(output, test_targets)
+    for (x, y) in batches
+        output = forward_pass(network, x)
+        loss, acc, _ = loss_and_accuracy(output, y)
+        total_loss += loss
+        total_accuracy += acc
+    end
 
-    return loss, acc
+    total_loss /= length(batches)
+    total_accuracy /= length(batches)
+    @info "Test Loss: $total_loss, Test Accuracy: $total_accuracy"
+    return total_loss, total_accuracy
 end
 
 
