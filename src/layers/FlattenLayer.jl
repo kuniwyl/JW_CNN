@@ -14,8 +14,18 @@ function forward_pass(layer::FlattenLayer, input::Array)
     return reshape(input, layer.input_shape[1] * layer.input_shape[2] * layer.input_shape[3], layer.input_shape[4])
 end
 
+function forward_pass!(layer::FlattenLayer, input::Array)
+    layer.input_shape = size(input)
+
+    return reshape(input, layer.input_shape[1] * layer.input_shape[2] * layer.input_shape[3], layer.input_shape[4])
+end
+
 # gradient from the next layer and the input from the previous layer
 function backward_pass(layer::FlattenLayer, dL_dY::Array)
+    return reshape(dL_dY, layer.input_shape)
+end
+
+function backward_pass!(layer::FlattenLayer, dL_dY::Array, input::Array)
     return reshape(dL_dY, layer.input_shape)
 end
 

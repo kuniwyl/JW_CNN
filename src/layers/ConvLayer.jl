@@ -1,9 +1,13 @@
 mutable struct ConvLayer <: Layer
     filters::Array{Float32, 3}
+    filterHeight::Int
+    filterWidth::Int
+    filtersNum::Int
     biases::Array{Float32, 1}
 
     input::Array{Float32, 4}
     output::Array{Float32, 4}
+    outputSize::Tuple{Int, Int, Int, Int}
 
     activation::Function
     deActivation::Function
@@ -38,39 +42,63 @@ function ConvLayer(filter_height::Int, filter_width::Int, num_filters::Int)::Con
     activation = relu
     deActivation = relu_derivative
     
-    return ConvLayer(filters, biases, input, output, activation, deActivation, dL_dW, dL_dB, dL_dX)
+    return ConvLayer(filters, filter_height, filter_width, num_filters, biases, input, output, (1, 1, 1, 1), activation, deActivation, dL_dW, dL_dB, dL_dX)
 end
 
 
 function forward_pass(layer::ConvLayer, input::Array)::Array{Float32, 4}
     layer.input = input
-    inputHeight, inputWidth, _, batchSize = size(input)
-    filterHeight, filterWidth, numFilters = size(layer.filters)
-    
-    outputHeight = inputHeight - filterHeight + 1
-    outputWidth = inputWidth - filterWidth + 1
 
-    if size(layer.output) != (outputHeight, outputWidth, numFilters, batchSize)
-        @info "Initializing output tensor for ConvLayer"
-        layer.output = zeros(outputHeight, outputWidth, numFilters, batchSize)
-    else
-        fill!(layer.output, 0)
+    if size(layer.output) == (1, 1, 1, 1)
+        inputHeight, inputWidth, _, batchSize = size(input)
+        outputHeight = inputHeight - layer.filterHeight + 1
+        outputWidth = inputWidth - layer.filterWidth + 1
+        layer.outputSize = (outputHeight, outputWidth, layer.filtersNum, batchSize)
+        layer.output = zeros(layer.outputSize)
     end
-
-    for f in 1:numFilters
+    fill!(layer.output, 0)
+    
+    for f in 1:layer.outputSize[3]
         filter = layer.filters[:, :, f]
-            for y in 1:outputHeight
-                for x in 1:outputWidth
-                result = input[y:y+filterHeight-1, x:x+filterWidth-1, :, :] .* filter
+
+        for y in 1:layer.outputSize[1]
+            for x in 1:layer.outputSize[2]
+                result = input[y:y+layer.filterHeight-1, x:x+layer.filterWidth-1, :, :] .* filter
                 layer.output[y, x, f, :] += vec(sum(result, dims=(1, 2, 3))) .+ layer.biases[f]
             end
         end
     end
 
-    # Activation Function (ReLU)
-    layer.output = layer.activation(layer.output)
+    return layer.activation(layer.output)
+end
 
-    return layer.output
+function forward_pass_single(layer::ConvLayer, input::Array{Float32, 3}, batchId)
+    for f in 1:layer.filtersNum
+        filter = layer.filters[:, :, f]
+
+        for y in 1:layer.outputSize[1]
+            for x in 1:layer.outputSize[2]
+                layer.output[y, x, f, batchId] += sum(input[y:y+layer.filterHeight-1, x:x+layer.filterWidth-1, :] .* filter) + layer.biases[f]
+            end
+        end
+    end
+end
+
+function forward_pass!(layer::ConvLayer, input::Array) 
+    if size(layer.output) == (1, 1, 1, 1)
+        inputHeight, inputWidth, _, batchSize = size(input)
+        outputHeight = inputHeight - layer.filterHeight + 1
+        outputWidth = inputWidth - layer.filterWidth + 1
+        layer.outputSize = (outputHeight, outputWidth, layer.filtersNum, batchSize)
+        layer.output = zeros(layer.outputSize)
+    end
+    fill!(layer.output, 0)
+
+    @threads for i in 1:layer.outputSize[4]
+        forward_pass_single(layer, input[:, :, :, i], i)
+    end
+
+    return layer.activation(layer.output)
 end
 
 
@@ -78,33 +106,76 @@ function backward_pass(layer::ConvLayer, dL_dY::Array)::Array{Float32, 4}
     dL_dZ = layer.deActivation(layer.output) .* dL_dY
 
     input = layer.input
-    filter_height, filter_width, num_filters = size(layer.filters)
-    output_height, output_width, _ = size(dL_dY)
-
+        
     if size(layer.dL_dX) == (1, 1, 1, 1)
-        @info "Initializing dL_dX tensor for ConvLayer"
         layer.dL_dX = zeros(size(input))
     else 
         fill!(layer.dL_dX, 0)
     end
 
     # Iterate over each filter
-    for f in 1:num_filters
+    for f in 1:layer.filtersNum
         filter = layer.filters[:, :, f]
-        for y in 1:output_height
-            for x in 1:output_width
+        for y in 1:layer.outputSize[1]
+            for x in 1:layer.outputSize[2]
                 dL_dZ_slice = dL_dZ[y, x, f, :]
                 layer.dL_dB[f] += sum(dL_dZ_slice)
 
                 for i in 1:size(input)[4]
-                    layer.dL_dW[:, :, f] .+= sum(input[y:y+filter_height-1, x:x+filter_width-1, :, i] .* dL_dZ_slice[i], dims=3)
-                    layer.dL_dX[y:y+filter_height-1, x:x+filter_width-1, :, i] .+= sum(filter .* dL_dZ_slice[i], dims=3)
+                    layer.dL_dW[:, :, f] .+= sum(input[y:y+layer.filterHeight-1, x:x+layer.filterWidth-1, :, i] .* dL_dZ_slice[i], dims=3)
+                    layer.dL_dX[y:y+layer.filterHeight-1, x:x+layer.filterWidth-1, :, i] .+= sum(filter .* dL_dZ_slice[i], dims=3)
                 end
             end
         end
     end
 
     return layer.dL_dX
+end
+
+function backward_pass!(layer::ConvLayer, dL_dY::Array, input::Array)::Array{Float32, 4}
+    dL_dZ = layer.deActivation(layer.output) .* dL_dY
+
+    if size(layer.dL_dX) == (1, 1, 1, 1)
+        layer.dL_dX = zeros(size(input))
+    else 
+        fill!(layer.dL_dX, 0)
+    end
+
+    for f in 1:layer.filtersNum
+        filter = layer.filters[:, :, f]
+
+        for y in 1:layer.outputSize[1]
+            for x in 1:layer.outputSize[2]
+                dL_dZ_slice = dL_dZ[y, x, f, :]
+                layer.dL_dB[f] += sum(dL_dZ_slice)
+
+                for i in 1:size(input)[4]
+                    layer.dL_dW[:, :, f] .+= sum(input[y:y+layer.filterHeight-1, x:x+layer.filterWidth-1, :, i] .* dL_dZ_slice[i], dims=3)
+                    layer.dL_dX[y:y+layer.filterHeight-1, x:x+layer.filterWidth-1, :, i] .+= sum(filter .* dL_dZ_slice[i], dims=3)
+                end
+            end
+        end
+    end
+
+    return layer.dL_dX
+end
+
+function backward_pass_single(layer::ConvLayer, dL_dY::Array{Float32, 3}, input::Array{Float32, 3}, batchId::Int64)
+    for f in 1:layer.filtersNum
+        filter = layer.filters[:, :, f]
+
+        for y in 1:layer.outputSize[1]
+            for x in 1:layer.outputSize[2]
+                dL_dZ_slice = dL_dY[y, x, f]
+                layer.dL_dB[f] += sum(dL_dZ_slice)
+
+                y_end = y + layer.filterHeight - 1
+                x_end = x + layer.filterWidth - 1
+                layer.dL_dW[:, :, f] .+= sum(input[y:y_end, x:x_end, :] .* dL_dZ_slice, dims=3)
+                layer.dL_dX[y:y_end, x:x_end, :, batchId] .+= sum(filter .* dL_dZ_slice, dims=3)
+            end
+        end
+    end
 end
 
 

@@ -4,7 +4,8 @@ using Statistics: mean
 using LinearAlgebra
 using Flux
 using Random
-using Base.Threads: nthreads
+using Base.Threads: nthreads, @threads
+using DataStructures
 
 println("JW_CNN module loaded")
 println("Number of threads: ", nthreads())
@@ -38,16 +39,20 @@ end
 # Forward pass through the network
 function forward_pass(network::NeuralNetwork, input)
     output = input
+    # stack = Stack{Array}()
     for layer in network.layers
+        # push!(stack, output) # Save the input for the backward pass
         output = forward_pass(layer, output)    
     end
+    # push!(stack, output) # Save the output of the network
     return output
 end
 
 # Backward pass through the network
-function backward_pass(network::NeuralNetwork, dL_dY)
+function backward_pass(network::NeuralNetwork, dL_dY, stack)
     dL_dOut = dL_dY
     for layer in reverse(network.layers)
+        # input = pop!(stack) # Get the input from the forward pass
         dL_dOut = backward_pass(layer, dL_dOut)
     end
 end
@@ -102,12 +107,14 @@ function train(network::NeuralNetwork, inputs, targets, test_input, test_target,
         
         for (x, y) in batches
             # Forward pass
+            # stack = forward_pass(network, x)
+            # output = pop!(stack) # Get the output of the network
             output = forward_pass(network, x)
 
             loss, acc, grad = loss_and_accuracy(output, y)
             
             # Backward pass
-            backward_pass(network, grad)
+            backward_pass(network, grad, stack)
 
             # Update weights
             update_weights!(network, network.batch_size)
@@ -115,7 +122,9 @@ function train(network::NeuralNetwork, inputs, targets, test_input, test_target,
             total_loss += loss
             total_accuracy += acc
 
-            @info "Loss: $loss, Accuracy: $acc, Epoch $epoch, Batch number: $i / $(length(batches))"
+            if i % 50 == 0
+                @info "Loss: $loss, Accuracy: $acc, Epoch $epoch, Batch number: $i / $(length(batches))"
+            end
             i += 1
         end
         
@@ -135,6 +144,7 @@ function test(network::NeuralNetwork, test_inputs, test_targets)
 
     for (x, y) in batches
         output = forward_pass(network, x)
+        # loss, acc, _ = loss_and_accuracy(pop!(output), y)
         loss, acc, _ = loss_and_accuracy(output, y)
         total_loss += loss
         total_accuracy += acc
@@ -147,6 +157,6 @@ function test(network::NeuralNetwork, test_inputs, test_targets)
 end
 
 
-export train!, NeuralNetwork, ConvLayer, MaxPoolLayer, FCLayer, FlattenLayer, forward_pass, backward_pass, update_weights!, update_weights, calculate_dl_dOut, loss_and_accuracy
+export train!, NeuralNetwork, ConvLayer, MaxPoolLayer, FCLayer, FlattenLayer, forward_pass, backward_pass, forward_pass!, backward_pass!, update_weights!, update_weights, calculate_dl_dOut, loss_and_accuracy
 
 end 

@@ -2,9 +2,10 @@ function MaxPoolLaterTest_ForwardTest()
     @testset "first layer example" begin
         input = [3, 3, 3, 3, 2, 1, 2, 4, 3, 3, 3, 3, 2, 1, 2, 5];
         input = reshape(input, 4, 4, 1, 1);
+        input = convert(Array{Float32, 4}, input);
 
         pool = MaxPoolLayer(2, 2);
-        output = forward_pass(pool, input);
+        output = forward_pass!(pool, input);
 
         expected = [3, 4, 3, 5];
         expected = reshape(expected, 2, 2, 1, 1);
@@ -16,9 +17,10 @@ function MaxPoolLaterTest_ForwardTest()
     @testset "second layer example 2 -> 3" begin
         input = [50, 62, 57, 56, 59, 73, 54, 86];
         input = reshape(input, 2, 2, 2, 1);
+        input = convert(Array{Float32, 4}, input);
 
         pool = MaxPoolLayer(2, 2);
-        output = forward_pass(pool, input);
+        output = forward_pass!(pool, input);
         expected = [62, 86];
         expected = reshape(expected, 1, 1, 2, 1);
         expected = convert(Array{Float32, 4}, expected);
@@ -33,9 +35,11 @@ function MaxPoolLaterTest_ForwardTest()
     @testset "third layer example batch_size 3" begin
         input = [50, 62, 57, 56, 59, 73, 54, 86, 50, 62, 57, 56, 59, 73, 54, 86, 50, 62, 57, 56, 59, 73, 54, 86];
         input = reshape(input, 2, 2, 2, 3);
+        input = convert(Array{Float32, 4}, input);
+
         pool = MaxPoolLayer(2, 2);
 
-        output = forward_pass(pool, input)
+        output = forward_pass!(pool, input)
         expected = [62, 86, 62, 86, 62, 86];
         expected = reshape(expected, 1, 1, 2, 3);
         expected = convert(Array{Float32, 4}, expected);
@@ -55,7 +59,7 @@ function MaxPoolLayerTest_BackwardTest()
         input = convert(Array{Float32, 4}, input);
 
         pool = MaxPoolLayer(2, 2);
-        output = forward_pass(pool, input);
+        output = forward_pass!(pool, input);
         expected = [62, 86];
         expected = reshape(expected, 1, 1, 2, 1);
         expected = convert(Array{Float32, 4}, expected);
@@ -69,7 +73,7 @@ function MaxPoolLayerTest_BackwardTest()
         dL_dY = reshape(dL_dY, 1, 1, 2, 1);
         dL_dY = convert(Array{Float32, 4}, dL_dY);
     
-        dL_dX = backward_pass(pool, dL_dY);
+        dL_dX = backward_pass!(pool, dL_dY, input);
         expected = [0, 1, 0, 0, 0, 0, 0, 2];
         expected = reshape(expected, 2, 2, 2, 1);
         expected = convert(Array{Float32, 4}, expected);
@@ -83,7 +87,7 @@ function MaxPoolLayerTest_BackwardTest()
         input = convert(Array{Float32, 4}, input);
 
         pool = MaxPoolLayer(2, 2);
-        output = forward_pass(pool, input);
+        output = forward_pass!(pool, input);
         
         expected = [62, 86, 62, 86, 62, 86];
         expected = reshape(expected, 1, 1, 2, 3);
@@ -99,7 +103,7 @@ function MaxPoolLayerTest_BackwardTest()
         dL_dY = reshape(dL_dY, 1, 1, 2, 3);
         dL_dY = convert(Array{Float32, 4}, dL_dY);
 
-        dL_dX = backward_pass(pool, dL_dY);
+        dL_dX = backward_pass!(pool, dL_dY,  input);
         expected = [0, 1, 0, 0, 0, 0, 0, 2, 0, 3, 0, 0, 0, 0, 0, 4, 0, 5, 0, 0, 0, 0, 0, 6];
         expected = reshape(expected, 2, 2, 2, 3);
         expected = convert(Array{Float32, 4}, expected);

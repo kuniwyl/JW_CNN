@@ -4,7 +4,7 @@ function FlattenLayerTest_ForwardTest()
         input = reshape(input, 3, 3, 1, 1);
 
         flatten = FlattenLayer();
-        output = forward_pass(flatten, input);
+        output = forward_pass!(flatten, input);
 
         expected = [1, 7, 5, 3, 9, 6, 6, 4, 8];
         expected = reshape(expected, 9, 1);
@@ -18,7 +18,7 @@ function FlattenLayerTest_ForwardTest()
         input = reshape(input, 2, 2, 2, 1);
 
         flatten = FlattenLayer();
-        output = forward_pass(flatten, input);
+        output = forward_pass!(flatten, input);
 
         expected = [50, 62, 57, 56, 59, 73, 54, 86];
         expected = reshape(expected, 8, 1);
@@ -32,7 +32,7 @@ function FlattenLayerTest_ForwardTest()
         input = reshape(input, 2, 2, 2, 3);
         
         flatten = FlattenLayer();
-        output = forward_pass(flatten, input)
+        output = forward_pass!(flatten, input)
         expected = [50, 62, 57, 56, 59, 73, 54, 86, 50, 62, 57, 56, 59, 73, 54, 86, 50, 62, 57, 56, 59, 73, 54, 86];
         expected = reshape(expected, 8, 3);
         expected = convert(Array{Float32, 2}, expected);
@@ -48,7 +48,7 @@ function FlattenLayerTest_BackwardTest()
         input = convert(Array{Float32, 4}, input);
 
         flatten = FlattenLayer();
-        output = forward_pass(flatten, input);
+        output = forward_pass!(flatten, input);
 
         expected = [1, 7, 5, 3, 9, 6, 6, 4, 8];
         expected = reshape(expected, 9, 1);
@@ -59,7 +59,7 @@ function FlattenLayerTest_BackwardTest()
         output = output .+ 1;
         dL_dOut = output;
 
-        dL_dX = backward_pass(flatten, dL_dOut);
+        dL_dX = backward_pass!(flatten, dL_dOut, input);
         expected_dL_dX = [2, 8, 6, 4, 10, 7, 7, 5, 9];
         expected_dL_dX = reshape(expected_dL_dX, 3, 3, 1, 1);
         expected_dL_dX = convert(Array{Float32, 4}, expected_dL_dX);
@@ -73,7 +73,7 @@ function FlattenLayerTest_BackwardTest()
         input = convert(Array{Float32, 4}, input);
 
         flatten = FlattenLayer();
-        output = forward_pass(flatten, input);
+        output = forward_pass!(flatten, input);
 
         expected = [50, 62, 57, 56, 59, 73, 54, 86];
         expected = reshape(expected, 8, 1);
@@ -84,7 +84,7 @@ function FlattenLayerTest_BackwardTest()
         output = output .+ 1;
         dL_dOut = output;
 
-        dL_dX = backward_pass(flatten, dL_dOut);
+        dL_dX = backward_pass!(flatten, dL_dOut, input);
         expected_dL_dX = [51, 63, 58, 57, 60, 74, 55, 87];
         expected_dL_dX = reshape(expected_dL_dX, 2, 2, 2, 1);
         expected_dL_dX = convert(Array{Float32, 4}, expected_dL_dX);
@@ -98,7 +98,7 @@ function FlattenLayerTest_BackwardTest()
         input = convert(Array{Float32, 4}, input);
 
         flatten = FlattenLayer();
-        output = forward_pass(flatten, input);
+        output = forward_pass!(flatten, input);
         expected = [50, 62, 57, 56, 59, 73, 54, 86, 50, 62, 57, 56, 59, 73, 54, 86, 50, 62, 57, 56, 59, 73, 54, 86];
         expected = reshape(expected, 8, 3);
         expected = convert(Array{Float32, 2}, expected);
@@ -108,7 +108,7 @@ function FlattenLayerTest_BackwardTest()
         output = output .+ 1;
         dL_dOut = output;
 
-        dL_dX = backward_pass(flatten, dL_dOut);
+        dL_dX = backward_pass!(flatten, dL_dOut, input);
         expected_dL_dX = [51, 63, 58, 57, 60, 74, 55, 87, 51, 63, 58, 57, 60, 74, 55, 87, 51, 63, 58, 57, 60, 74, 55, 87];
         expected_dL_dX = reshape(expected_dL_dX, 2, 2, 2, 3);
         expected_dL_dX = convert(Array{Float32, 4}, expected_dL_dX);
