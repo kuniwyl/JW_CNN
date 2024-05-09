@@ -1,14 +1,25 @@
 using Test
+using Flux
 using JW_CNN
 
-include("conv_layer_test.jl")
-conv_layer_test()
+include("layers_unit/ConvLayerTest.jl")
+include("layers_unit/MaxPoolLayerTest.jl")
+include("layers_unit/FlattenLayerTest.jl")
+include("layers_unit/FCLayerTest.jl")
 
-include("dense_layer_test.jl")
-dense_layer_test()
+function run_tests()
+    ConvLayerTest_ForwardTest()
+    MaxPoolLaterTest_ForwardTest()
+    FlattenLayerTest_ForwardTest()
+    FCLayerTest_ForwardTest()
 
-include("pool_layer_test.jl")
-pool_layer_test()
+    FCLayerTest_BackwardTest()
+    FlattenLayerTest_BackwardTest()
+    MaxPoolLayerTest_BackwardTest()
+    ConvLayerTest_BackwardTest()
 
-include("flatten_layer_test.jl")
-flatten_layer_test()
+    FCLayerTest_UpdateWeights()
+    ConvLayerTest_UpdateWeight()
+end
+
+run_tests()
