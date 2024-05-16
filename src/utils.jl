@@ -23,3 +23,25 @@ function loss_and_accuracy(ŷ, y)
     acc = round(100 * mean(pred_classes .== true_classes); digits=2)
     return loss, acc, grad
 end
+
+function shuffle_data(inputs, targets)
+    num_samples = size(inputs, 4)
+    indices = Random.shuffle(1:num_samples)
+    shuffled_inputs = inputs[:, :, :, indices]
+    shuffled_targets = targets[:, indices]
+    return shuffled_inputs, shuffled_targets
+end
+
+function get_batches(inputs, targets, batch_size)
+    shuffled_inputs, shuffled_targets = shuffle_data(inputs, targets)
+    num_samples = size(shuffled_targets, 2)
+    num_batches = div(num_samples, batch_size)
+    batches = []
+    for i in 1:num_batches
+        start_idx = (i - 1) * batch_size + 1
+        end_idx = i * batch_size
+        batch_indices = start_idx:end_idx
+        push!(batches, (shuffled_inputs[:, :, :, batch_indices], shuffled_targets[:, batch_indices]))
+    end
+    return batches
+end

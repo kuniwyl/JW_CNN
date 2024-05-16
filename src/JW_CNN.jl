@@ -5,7 +5,6 @@ using LinearAlgebra
 using Flux
 using Random
 using Base.Threads: nthreads, @threads
-using DataStructures
 
 println("JW_CNN module loaded")
 println("Number of threads: ", nthreads())
@@ -31,69 +30,27 @@ function NeuralNetwork(learning_rate::Float64, batch_size::Int64)
     return NeuralNetwork([], learning_rate, batch_size)
 end
 
-# Function to add layers to the network
 function add_layer!(network::NeuralNetwork, layer)
     push!(network.layers, layer)
 end
 
-# Forward pass through the network
 function forward_pass(network::NeuralNetwork, input)
-    output = input
-    # stack = Stack{Array}()
     for layer in network.layers
-        # push!(stack, output) # Save the input for the backward pass
-        output = forward_pass(layer, output)    
+        input = forward_pass(layer, input)    
     end
-    # push!(stack, output) # Save the output of the network
-    return output
+    return input
 end
 
-# Backward pass through the network
-function backward_pass(network::NeuralNetwork, dL_dY, stack)
-    dL_dOut = dL_dY
+function backward_pass(network::NeuralNetwork, dL_dY)
     for layer in reverse(network.layers)
-        # input = pop!(stack) # Get the input from the forward pass
-        dL_dOut = backward_pass(layer, dL_dOut)
+        dL_dY = backward_pass(layer, dL_dY)
     end
 end
 
-# Update the weights of the network
 function update_weights!(network::NeuralNetwork, batch_size)
     for layer in network.layers
         update_weights(layer, network.learning_rate, batch_size)
     end
-end
-
-function shuffle_data(inputs, targets)
-    num_samples = size(inputs, 4)
-
-    # Create an array of indices and shuffle it
-    indices = Random.shuffle(1:num_samples)
-
-    # Shuffle inputs and targets based on the shuffled indices
-    shuffled_inputs = inputs[:, :, :, indices]
-    shuffled_targets = targets[:, indices]
-
-    return shuffled_inputs, shuffled_targets
-end
-
-function get_batches(inputs, targets, batch_size)
-    # Shuffle inputs and targets
-    shuffled_inputs, shuffled_targets = shuffle_data(inputs, targets)
-
-    num_samples = size(shuffled_targets, 2)
-    num_batches = div(num_samples, batch_size)
-
-    batches = []
-    for i in 1:num_batches
-        start_idx = (i - 1) * batch_size + 1
-        end_idx = i * batch_size
-
-        # Get the batches from the shuffled inputs and targets
-        batch_indices = start_idx:end_idx
-        push!(batches, (shuffled_inputs[:, :, :, batch_indices], shuffled_targets[:, batch_indices]))
-    end
-    return batches
 end
 
 function train(network::NeuralNetwork, inputs, targets, test_input, test_target, epochs::Int64)
@@ -106,30 +63,20 @@ function train(network::NeuralNetwork, inputs, targets, test_input, test_target,
         i = 1
         
         for (x, y) in batches
-            # Forward pass
-            # stack = forward_pass(network, x)
-            # output = pop!(stack) # Get the output of the network
             output = forward_pass(network, x)
-
             loss, acc, grad = loss_and_accuracy(output, y)
-            
-            # Backward pass
-            backward_pass(network, grad, stack)
-
-            # Update weights
+            backward_pass(network, grad)
             update_weights!(network, network.batch_size)
-
             total_loss += loss
             total_accuracy += acc
-
             if i % 50 == 0
                 @info "Loss: $loss, Accuracy: $acc, Epoch $epoch, Batch number: $i / $(length(batches))"
             end
             i += 1
         end
         
-        test_loss, test_acc = test(network, test_input, test_target)
-        @info "Test Loss: $test_loss, Test Accuracy: $test_acc"
+        # test_loss, test_acc = test(network, test_input, test_target)
+        # @info "Test Loss: $test_loss, Test Accuracy: $test_acc"
         end
     end
     return network.layers
@@ -144,7 +91,6 @@ function test(network::NeuralNetwork, test_inputs, test_targets)
 
     for (x, y) in batches
         output = forward_pass(network, x)
-        # loss, acc, _ = loss_and_accuracy(pop!(output), y)
         loss, acc, _ = loss_and_accuracy(output, y)
         total_loss += loss
         total_accuracy += acc

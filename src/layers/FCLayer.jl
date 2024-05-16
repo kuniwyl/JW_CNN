@@ -40,27 +40,11 @@ end
 
 function forward_pass(layer::FCLayer, input::Array)
     layer.input = input
-    
-    # Check if output needs to be (re)initialized
     if size(layer.output) != (size(layer.weights, 2), size(input, 2))
         layer.output = zeros(size(layer.weights, 2), size(input, 2))
     end
 
-    # Matrix multiplication for the entire input matrix
     layer.output .= layer.weights' * input .+ layer.biases
-
-    return layer.activation(layer.output)
-end
-
-function forward_pass!(layer::FCLayer, input::Array)
-    if size(layer.output) != (size(layer.weights, 2), size(input, 2))
-        layer.output = zeros(size(layer.weights, 2), size(input, 2))
-    end 
-
-    @threads for i in 1:size(input, 2)
-        layer.output[:, i] .= layer.weights' * input[:, i] .+ layer.biases
-    end
-    
     return layer.activation(layer.output)
 end
 
@@ -79,24 +63,6 @@ function backward_pass(layer::FCLayer, dL_dY::Array)
     layer.biases_gradient .+= sum(dL_dZ, dims=2)
 
     layer.dL_dX = layer.weights * dL_dZ
-
-    return layer.dL_dX
-end
-
-function backward_pass!(layer::FCLayer, dL_dY::Array, input::Array)
-    if size(layer.dL_dX) != size(input)
-        layer.dL_dX = zeros(size(input))
-    else
-        fill!(layer.dL_dX, 0) 
-    end
-
-    dL_dZ = layer.deactivation(layer.output) .* dL_dY
-
-    @threads for i in 1:size(input, 2)
-        layer.weights_gradient .+= input[:, i] * dL_dZ[:, i]'
-        layer.biases_gradient .+= dL_dZ[:, i]
-        layer.dL_dX[:, i] .= layer.weights * dL_dZ[:, i]
-    end
 
     return layer.dL_dX
 end
