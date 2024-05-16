@@ -46,7 +46,7 @@ function forward_pass(layer::ConvLayer, input::Array)::Array{Float32, 4}
     fill!(layer.output, 0)
     layer.input = input
 
-    @inbounds for c in 1:size(input)[4]
+    @inbounds @threads for c in 1:size(input)[4]
         for f in 1:layer.filtersNum
             filter = @view layer.filters[:, :, f]
 
@@ -83,7 +83,7 @@ function backward_pass(layer::ConvLayer, dL_dY::Array)::Array{Float32, 4}
     layer.dL_dZ .= layer.deActivation(layer.output)
     layer.dL_dZ .= layer.dL_dZ .* dL_dY
 
-    @inbounds for c in 1:size(input)[4]
+    @inbounds @threads for c in 1:size(input)[4]
         for f in 1:layer.filtersNum
             filter = @view layer.filters[:, :, f]
             for y in 1:layer.outputSize[1]

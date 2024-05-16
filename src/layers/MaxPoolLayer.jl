@@ -48,7 +48,7 @@ function forward_pass(layer::MaxPoolLayer, input::Array)
     layer.input = input
     fill!(layer.output, 0)
 
-    @inbounds @views for i in 1:size(layer.output)[1]
+    @inbounds @threads for i in 1:size(layer.output)[1]
         for j in 1:size(layer.output)[2]
             i_start = layer.i_starts[i]
             i_end = layer.i_ends[i]
@@ -74,7 +74,7 @@ function backward_pass(layer::MaxPoolLayer, dL_dY::Array)
     end
     fill!(layer.dL_dX, 0)
 
-    @inbounds @views for i in 1:size(layer.output)[1]
+    @inbounds @threads for i in 1:size(layer.output)[1]
         for j in 1:size(layer.output)[2]
             i_start = layer.i_starts[i]
             i_end = layer.i_ends[i]
@@ -86,7 +86,7 @@ function backward_pass(layer::MaxPoolLayer, dL_dY::Array)
                     dL_dY_slice = dL_dY[i, j, c, b]
                     
                     if dL_dY_slice != 0
-                        indices = layer.indices[i_start:i_end, j_start:j_end, c, b]
+                        @views indices = layer.indices[i_start:i_end, j_start:j_end, c, b]
                         for x in 1:size(indices)[1]
                             for y in 1:size(indices)[2]
                                 if indices[x, y] != 0

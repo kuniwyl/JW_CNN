@@ -56,27 +56,26 @@ end
 function train(network::NeuralNetwork, inputs, targets, test_input, test_target, epochs::Int64)
     for epoch in 1:epochs
         @time begin
-        @info "Epoch $epoch"
-        total_loss = 0.0
-        total_accuracy = 0.0
-        batches = get_batches(inputs, targets, network.batch_size)
-        i = 1
-        
-        for (x, y) in batches
-            output = forward_pass(network, x)
-            loss, acc, grad = loss_and_accuracy(output, y)
-            backward_pass(network, grad)
-            update_weights!(network, network.batch_size)
-            total_loss += loss
-            total_accuracy += acc
-            # if i % 50 == 0
-            #     @info "Loss: $loss, Accuracy: $acc, Epoch $epoch, Batch number: $i / $(length(batches))"
-            # end
-            i += 1
+            @info "Epoch $epoch"
+            total_loss = 0.0
+            total_accuracy = 0.0
+            batches = get_batches(inputs, targets, network.batch_size)
+            # i = 1
+            
+            for (x, y) in batches
+                output = forward_pass(network, x)
+                loss, acc, grad = loss_and_accuracy(output, y)
+                backward_pass(network, grad)
+                update_weights!(network, network.batch_size)
+                total_loss += loss
+                total_accuracy += acc
+                # if i % 50 == 0
+                #     @info "Loss: $loss, Accuracy: $acc, Epoch $epoch, Batch number: $i / $(length(batches))"
+                # end
+                # i += 1
+            end
         end
-        
-        test_loss, test_acc = test(network, test_input, test_target)
-        end
+        test(network, test_input, test_target)
     end
     return network.layers
 end
