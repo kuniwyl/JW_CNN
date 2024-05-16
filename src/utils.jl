@@ -1,5 +1,13 @@
 using Statistics
 
+function relu(x)
+    return @.max(0, x)
+end
+
+function relu_derivative(x)
+    return @. x > 0
+end
+
 function softmax(x)
     exp_x = exp.(x .- maximum(x, dims=1))
     return exp_x ./ sum(exp_x, dims=1)

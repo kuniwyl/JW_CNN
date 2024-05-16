@@ -11,7 +11,7 @@ function ConvLayerTest_ForwardTest()
         conv.filters = filters;
         conv.biases = [1.0, 2.0];
 
-        output = forward_pass!(conv, input);
+        output = forward_pass(conv, input);
         expected = [50, 62, 57, 56, 59, 73, 54, 86];
         expected = reshape(expected, 2, 2, 2, 1);
         expected = convert(Array{Float32, 4}, expected);
@@ -30,7 +30,7 @@ function ConvLayerTest_ForwardTest()
         conv.filters = filters;
         conv.biases = [1.0, 2.0, 3.0];
 
-        output = forward_pass!(conv, input);
+        output = forward_pass(conv, input);
         expected = [751, 743, 500];
         expected = reshape(expected, 1, 1, 3, 1);
         expected = convert(Array{Float32, 4}, expected);
@@ -49,7 +49,7 @@ function ConvLayerTest_ForwardTest()
         conv.filters = filters;
         conv.biases = [1.0, 2.0, 3.0];
 
-        output = forward_pass!(conv, input)
+        output = forward_pass(conv, input)
         expected = [751, 743, 500, 751, 743, 500, 751, 743, 500];
         expected = reshape(expected, 1, 1, 3, 3);
         expected = convert(Array{Float32, 4}, expected);
@@ -70,13 +70,13 @@ function ConvLayerTest_BackwardTest()
         conv.filters = filters;
         conv.biases = [1.0];
 
-        output = forward_pass!(conv, input);
+        output = forward_pass(conv, input);
         
         gradients = [1, -1, 1, -1];
         gradients = reshape(gradients, 2, 2, 1, 1);
         gradients = convert(Array{Float32, 4}, gradients);
 
-        dL_dIn = backward_pass!(conv, gradients, input);
+        dL_dIn = backward_pass(conv, gradients);
 
         expected_dL_dIn = [1, 1, -2, 3, 0, -3, 2, -1, -1];
         expected_dL_dIn = reshape(expected_dL_dIn, 3, 3, 1, 1);
@@ -106,13 +106,13 @@ function ConvLayerTest_BackwardTest()
         conv.filters = filters;
         conv.biases = [1.0];
 
-        output = forward_pass!(conv, input);
+        output = forward_pass(conv, input);
         
         gradients = [1, -1, 1, -1, 1, -1, 1, -1];
         gradients = reshape(gradients, 2, 2, 1, 2);
         gradients = convert(Array{Float32, 4}, gradients);
 
-        dL_dIn = backward_pass!(conv, gradients, input);
+        dL_dIn = backward_pass(conv, gradients);
 
         expected_dL_dIn = [1, 1, -2, 3, 0, -3, 2, -1, -1, 1, 1, -2, 3, 0, -3, 2, -1, -1];
         expected_dL_dIn = reshape(expected_dL_dIn, 3, 3, 1, 2);
@@ -140,13 +140,13 @@ function ConvLayerTest_BackwardTest()
         conv.filters = filters;
         conv.biases = [1.0, 2.0, 3.0];
 
-        output = forward_pass!(conv, input);
+        output = forward_pass(conv, input);
 
         gradients = [1, 0, -1, 0, 0, -1, 0, 1, 1, 0, 0, 1];
         gradients = reshape(gradients, 2, 2, 3, 1);
         gradients = convert(Array{Float32, 4}, gradients);
 
-        dL_dIn = backward_pass!(conv, gradients, input);
+        dL_dIn = backward_pass(conv, gradients);
 
         expected_dL_dIn = [2, 5, -3, 5, -1, 6, -2, 6, 2, 2, 5, -3, 5, -1, 6, -2, 6, 2];
         expected_dL_dIn = reshape(expected_dL_dIn, 3, 3, 2, 1);

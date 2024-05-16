@@ -15,34 +15,22 @@ mutable struct ConvLayer <: Layer
     dL_dW::Array{Float32, 3}
     dL_dB::Array{Float32, 1}
     dL_dX::Array{Float32, 4}
+    dL_dZ::Array{Float32, 4}
 end
 
-
-function relu(x::Array{Float32, 4})::Array{Float32, 4}
-    return max.(0, x)
-end
-
-
-function relu_derivative(x::Array{Float32, 4})::Array{Float32, 4}
-    return x .> 0
-end
-
-
-function ConvLayer(filter_height::Int, filter_width::Int, num_filters::Int)::ConvLayer
+function ConvLayer(filter_height::Int, filter_width::Int, num_filters::Int, activation::Function=relu, deActivation::Function=relu_derivative)::ConvLayer
     filters = randn(filter_height, filter_width, num_filters)
     biases = zeros(num_filters)
 
     dL_dW = zeros(size(filters))
     dL_dB = zeros(size(biases))
     dL_dX = zeros(1, 1, 1, 1)
+    dL_dZ = zeros(1, 1, 1, 1)
 
     input = zeros(1, 1, 1, 1)
     output = zeros(1, 1, 1, 1)
 
-    activation = relu
-    deActivation = relu_derivative
-    
-    return ConvLayer(filters, filter_height, filter_width, num_filters, biases, input, output, (1, 1, 1, 1), activation, deActivation, dL_dW, dL_dB, dL_dX)
+    return ConvLayer(filters, filter_height, filter_width, num_filters, biases, input, output, (1, 1, 1, 1), activation, deActivation, dL_dW, dL_dB, dL_dX, dL_dZ)
 end
 
 
@@ -58,13 +46,13 @@ function forward_pass(layer::ConvLayer, input::Array)::Array{Float32, 4}
     fill!(layer.output, 0)
     layer.input = input
 
-    @inbounds @views for c in 1:size(input)[4]
+    @inbounds for c in 1:size(input)[4]
         for f in 1:layer.filtersNum
-            filter = layer.filters[:, :, f]
+            filter = @view layer.filters[:, :, f]
 
             for y in 1:layer.outputSize[1]
                 for x in 1:layer.outputSize[2]
-                    inputSlice = input[y:y+layer.filterHeight-1, x:x+layer.filterWidth-1, :, c]
+                    inputSlice = @view input[y:y+layer.filterHeight-1, x:x+layer.filterWidth-1, :, c]
                     
                     for yy in 1:layer.filterHeight
                         for xx in 1:layer.filterWidth
@@ -84,22 +72,24 @@ end
 
 
 function backward_pass(layer::ConvLayer, dL_dY::Array)::Array{Float32, 4}
-    dL_dZ = layer.deActivation(layer.output) .* dL_dY
     input = layer.input
-        
+
     if size(layer.dL_dX) == (1, 1, 1, 1)
         layer.dL_dX = zeros(size(input))
-    else 
-        fill!(layer.dL_dX, 0)
+        layer.dL_dZ = zeros(size(dL_dY))
     end
 
-    #calculate weights gradients
+    fill!(layer.dL_dX, 0)
+    layer.dL_dZ .= layer.deActivation(layer.output)
+    layer.dL_dZ .= layer.dL_dZ .* dL_dY
+
     @inbounds for c in 1:size(input)[4]
         for f in 1:layer.filtersNum
             filter = @view layer.filters[:, :, f]
             for y in 1:layer.outputSize[1]
                 for x in 1:layer.outputSize[2]
-                    dL_dZ_slice = dL_dZ[y, x, f, c]
+                    dL_dZ_slice = layer.dL_dZ[y, x, f, c]
+
                     if (dL_dZ_slice != 0)
                         for i in 1:size(input)[3]
                             inputSlice = @view input[y:y+layer.filterHeight-1, x:x+layer.filterWidth-1, i, c]
@@ -110,16 +100,16 @@ function backward_pass(layer::ConvLayer, dL_dY::Array)::Array{Float32, 4}
                                 end
                             end
                         end
+                        layer.dL_dB[f] += dL_dZ_slice
                     end
+
                 end
             end
-            layer.dL_dB[f] += sum(dL_dZ[:, :, f, c])
         end
     end
 
     return layer.dL_dX
 end
-
 
 function update_weights(layer::ConvLayer, learning_rate::Float64, batch_size::Int64)
     layer.filters .-= learning_rate * (layer.dL_dW / batch_size)

@@ -10,7 +10,7 @@ function FCLayerTest_ForwardTest()
         fc.weights = weights;
         fc.biases = [1, 2];
 
-        output = forward_pass!(fc, input);
+        output = forward_pass(fc, input);
         expected = [270, 712];
         expected = reshape(expected, 2, 1);
         expected = convert(Array{Float32, 2}, expected);
@@ -29,7 +29,7 @@ function FCLayerTest_ForwardTest()
         fc.weights = weights;
         fc.biases = [1, 2, 3];
 
-        output = forward_pass!(fc, input);
+        output = forward_pass(fc, input);
         expected = [270, 712, 1154];
         expected = reshape(expected, 3, 1);
         expected = convert(Array{Float32, 2}, expected);
@@ -48,7 +48,7 @@ function FCLayerTest_ForwardTest()
         fc.weights = weights;
         fc.biases = [1, 2];
 
-        output = forward_pass!(fc, input);
+        output = forward_pass(fc, input);
         expected = [88, 214, 73, 204, 108, 284];
         expected = reshape(expected, 2, 3);
         expected = convert(Array{Float32, 2}, expected);
@@ -69,7 +69,7 @@ function FCLayerTest_BackwardTest()
         fc.weights = weights;
         fc.biases = [1, 2];
 
-        output = forward_pass!(fc, input);
+        output = forward_pass(fc, input);
 
         y = [1, 0];
         y = reshape(y, 2, 1);
@@ -88,7 +88,7 @@ function FCLayerTest_BackwardTest()
         expected_dL_dB = [-1, 1];
         expected_dL_dB = convert(Array{Float32, 1}, expected_dL_dB);
 
-        dL_dX = backward_pass!(fc, grad, input);
+        dL_dX = backward_pass(fc, grad);
 
         @test expected_dL_dX == dL_dX;
         @test expected_dL_dW == fc.weights_gradient;
@@ -106,7 +106,7 @@ function FCLayerTest_BackwardTest()
         fc.weights = weights;
         fc.biases = [1, 2, 3];
 
-        output = forward_pass!(fc, input);
+        output = forward_pass(fc, input);
 
         y = [1, 0, 0];
         y = reshape(y, 3, 1);
@@ -125,7 +125,7 @@ function FCLayerTest_BackwardTest()
         expected_dL_dB = [-1, 0, 1];
         expected_dL_dB = convert(Array{Float32, 1}, expected_dL_dB);
 
-        dL_dX = backward_pass!(fc, grad, input);
+        dL_dX = backward_pass(fc, grad);
 
         @test expected_dL_dX == dL_dX;
         @test expected_dL_dW == fc.weights_gradient;
@@ -143,7 +143,7 @@ function FCLayerTest_BackwardTest()
         fc.weights = weights;
         fc.biases = [1, 2];
 
-        output = forward_pass!(fc, input);
+        output = forward_pass(fc, input);
 
         y = [1, 0, 1, 0, 1, 0];
         y = reshape(y, 2, 3);
@@ -162,7 +162,7 @@ function FCLayerTest_BackwardTest()
         expected_dL_dB = [-3, 3];
         expected_dL_dB = convert(Array{Float32, 1}, expected_dL_dB);
 
-        dL_dX = backward_pass!(fc, grad, input);
+        dL_dX = backward_pass(fc, grad);
 
         @test expected_dL_dX == dL_dX;
         @test expected_dL_dW == fc.weights_gradient;

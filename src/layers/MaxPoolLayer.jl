@@ -31,42 +31,32 @@ function MaxPoolLayer(height::Int, width::Int)::MaxPoolLayer
 end
 
 function forward_pass(layer::MaxPoolLayer, input::Array)
-    if size(layer.input) == (1, 1, 1, 1)
-        layer.input = zeros(size(input))
-    end
-
-    layer.input = input
-    pool_height, pool_width = layer.pool_size
-    input_height, input_width, input_channels, batch_size = size(input)
-
-    output_height = div(input_height, pool_height)
-    output_width = div(input_width, pool_width)
-
     if size(layer.output) == (1, 1, 1, 1)
+        pool_height, pool_width = layer.pool_size
+        input_height, input_width, input_channels, batch_size = size(input)
+        layer.input = zeros(size(input))
+        output_height = div(input_height, pool_height)
+        output_width = div(input_width, pool_width)
         layer.output = zeros(output_height, output_width, input_channels, batch_size)
-    else
-        fill!(layer.output, 0)
-    end
-
-    if size(layer.indices) == (1, 1, 1, 1)
         layer.indices = zeros(input_height, input_width, input_channels, batch_size)
         layer.i_starts = 1:pool_height:input_height
         layer.i_ends = pool_height:pool_height:input_height
         layer.j_starts = 1:pool_width:input_width
         layer.j_ends = pool_width:pool_width:input_width
-    else
-        fill!(layer.indices, 0)
     end
 
-    for i in 1:output_height
-        for j in 1:output_width
+    layer.input = input
+    fill!(layer.output, 0)
+
+    @inbounds @views for i in 1:size(layer.output)[1]
+        for j in 1:size(layer.output)[2]
             i_start = layer.i_starts[i]
             i_end = layer.i_ends[i]
             j_start = layer.j_starts[j]
             j_end = layer.j_ends[j]
 
-            for c in 1:input_channels
-                for b in 1:batch_size
+            for c in 1:size(input)[3]
+                for b in 1:size(input)[4]
                     @views window = input[i_start:i_end, j_start:j_end, c, b]
                     layer.output[i, j, c, b] = maximum(window)
                     layer.indices[i_start:i_end, j_start:j_end, c, b] .= window .== layer.output[i, j, c, b]
@@ -94,14 +84,16 @@ function backward_pass(layer::MaxPoolLayer, dL_dY::Array)
             for c in 1:size(layer.output)[3]
                 for b in 1:size(layer.output)[4]
                     dL_dY_slice = dL_dY[i, j, c, b]
-                    if dL_dY_slice == 0
-                        continue
-                    end
-                    indices = layer.indices[i_start:i_end, j_start:j_end, c, b]
-                    for x in 1:size(indices)[1]
-                        for y in size(indices)[2]
-                            layer.dL_dX[x, y, c, b] = dL_dY_slice * indices[x, y]
-                        end
+                    
+                    if dL_dY_slice != 0
+                        indices = layer.indices[i_start:i_end, j_start:j_end, c, b]
+                        for x in 1:size(indices)[1]
+                            for y in 1:size(indices)[2]
+                                if indices[x, y] != 0
+                                    layer.dL_dX[x, y, c, b] = dL_dY_slice
+                                end
+                            end
+                        end 
                     end
                 end
             end

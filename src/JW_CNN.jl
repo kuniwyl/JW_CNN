@@ -1,7 +1,7 @@
 module JW_CNN
 
 using Statistics: mean
-using LinearAlgebra
+using LinearAlgebra: mul!
 using Flux
 using Random
 using Base.Threads: nthreads, @threads
@@ -69,14 +69,13 @@ function train(network::NeuralNetwork, inputs, targets, test_input, test_target,
             update_weights!(network, network.batch_size)
             total_loss += loss
             total_accuracy += acc
-            if i % 50 == 0
-                @info "Loss: $loss, Accuracy: $acc, Epoch $epoch, Batch number: $i / $(length(batches))"
-            end
+            # if i % 50 == 0
+            #     @info "Loss: $loss, Accuracy: $acc, Epoch $epoch, Batch number: $i / $(length(batches))"
+            # end
             i += 1
         end
         
-        # test_loss, test_acc = test(network, test_input, test_target)
-        # @info "Test Loss: $test_loss, Test Accuracy: $test_acc"
+        test_loss, test_acc = test(network, test_input, test_target)
         end
     end
     return network.layers
@@ -103,6 +102,6 @@ function test(network::NeuralNetwork, test_inputs, test_targets)
 end
 
 
-export train!, NeuralNetwork, ConvLayer, MaxPoolLayer, FCLayer, FlattenLayer, forward_pass, backward_pass, forward_pass!, backward_pass!, update_weights!, update_weights, calculate_dl_dOut, loss_and_accuracy
+export train!, test, NeuralNetwork, ConvLayer, MaxPoolLayer, FCLayer, FlattenLayer, forward_pass, backward_pass, update_weights, loss_and_accuracy
 
 end 

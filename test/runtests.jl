@@ -2,6 +2,7 @@ using Test
 using Flux
 using JW_CNN
 
+include("../src/utils.jl")
 include("layers_unit/ConvLayerTest.jl")
 include("layers_unit/MaxPoolLayerTest.jl")
 include("layers_unit/FlattenLayerTest.jl")

@@ -5,11 +5,11 @@ train_data = MLDatasets.MNIST(split=:train);
 test_data  = MLDatasets.MNIST(split=:test);
 
 function relu(x)
-    return max.(0, x)
+    return @.max(0, x)
 end
 
 function relu_derivative(x)
-    return x .> 0
+    return @. x > 0
 end
 
 function identity(x)
@@ -21,10 +21,10 @@ function identity_derivative(x)
 end
 
 include("src/JW_CNN.jl")
-network = JW_CNN.NeuralNetwork(0.01, 200);
-JW_CNN.add_layer!(network, JW_CNN.ConvLayer(3, 3, 6));
+network = JW_CNN.NeuralNetwork(0.01, 100);
+JW_CNN.add_layer!(network, JW_CNN.ConvLayer(3, 3, 6, relu, relu_derivative));
 JW_CNN.add_layer!(network, JW_CNN.MaxPoolLayer(2, 2));
-JW_CNN.add_layer!(network, JW_CNN.ConvLayer(3, 3, 16));
+JW_CNN.add_layer!(network, JW_CNN.ConvLayer(3, 3, 16, relu, relu_derivative));
 JW_CNN.add_layer!(network, JW_CNN.MaxPoolLayer(2, 2));
 JW_CNN.add_layer!(network, JW_CNN.FlattenLayer());
 JW_CNN.add_layer!(network, JW_CNN.FCLayer(400, 84, relu, relu_derivative));
@@ -38,12 +38,12 @@ test_input = reshape(test_data.features, 28, 28, 1, :);
 test_targets = Flux.onehotbatch(test_data.targets, 0:9);
 test_targets = reshape(test_targets, 10, :);
 
-# small_input = inputs[:, :, :, 1:400];
-# small_targets = targets[:, 1:400];
-# @time JW_CNN.train(network, small_input, small_targets, test_input, test_targets, 1);
+# small_input = inputs[:, :, :, 1:200];
+# small_targets = targets[:, 1:200];
+# @time JW_CNN.train(network, small_input, small_targets, test_input, test_targets, 2);
 
-# # JW_CNN.test(network, test_input, test_targets)
-@time JW_CNN.train(network, inputs, targets, test_input, test_targets, 2);
+@time JW_CNN.test(network, test_input, test_targets)
+@time JW_CNN.train(network, inputs, targets, test_input, test_targets, 3);
 @time JW_CNN.test(network, test_input, test_targets)  
 
 "fin"
